@@ -1,17 +1,19 @@
 CC=gcc
 CFLAGS=-Wall -Werror -ggdb
 LDFLAGS=-pthread
-FILES=main list
-
+FILES=
 OBJECTS=$(addsuffix .o , $(FILES))
 
-all: bin
+all: server client
 
-bin: $(OBJECTS)
+server: server.o $(OBJECTS)
+	gcc $(LDFLAGS) -o $@ $^
+
+client: client.o $(OBJECTS)
 	gcc $(LDFLAGS) -o $@ $^
 
 clean:
-	rm -fv bin $(OBJECTS) *~
+	rm -fv server client server.o client.o $(OBJECTS) *~
 
 test_variables:
 	echo $(FILES)
