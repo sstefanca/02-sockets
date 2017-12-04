@@ -53,9 +53,11 @@ int main(int argc, char **argv)
     printf("%i\n", port);
 
     //setting up epoll
+    //nu e verificat epollfd daca e valid
     epollfd = epoll_create(16);
     
     //opening socket for listening
+    //nu e verificat epollfd daca e valid
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
     sockaddr.sin_family = AF_INET;
@@ -79,6 +81,7 @@ int main(int argc, char **argv)
     //adding socket to epoll
     event.data.fd = sockfd;
     event.events = EPOLLIN;
+    //nu verific epoll_ctl
     epoll_ctl(epollfd, EPOLL_CTL_ADD, sockfd, &event);
 
     //main loop
@@ -90,16 +93,19 @@ int main(int argc, char **argv)
 	//wait for event
 	num = epoll_wait(epollfd, &event, 1, TIMEOUT);
 
+	// nu verific num<0
 	if(num == 0)
 	    continue;
 	//if socket is listen socket
 	if(event.data.fd == sockfd)
 	{
 
+	    //nu verific sfd
 	    sfd = accept(sockfd, NULL, NULL);
 	    ev.data.fd = sfd;
 	    ev.events = EPOLLIN;
 
+	    //nu verific epoll_ctl
 	    epoll_ctl(epollfd, EPOLL_CTL_ADD, sfd, &ev);
 	}
 	//if socket is client socket
@@ -112,6 +118,7 @@ int main(int argc, char **argv)
 		header_t msg;
 
 		//read data from socket
+		//nu e verificata primirea
 		recv(sfd, &msg, sizeof(msg), 0);
 		if(msg.msg == REQUEST)
 		{
@@ -121,19 +128,24 @@ int main(int argc, char **argv)
 		    {
 			fds[sfd]=ffd;
 			msg.msg = ACK;
+			//nu verific trimiterea
 			send(sfd, &msg, sizeof(msg), 0);
 
 			ev.data.fd = sfd;
 			ev.events = EPOLLOUT;
+			//nu verific epoll
 			epoll_ctl(epollfd, EPOLL_CTL_MOD, sfd, &ev);
 		    }
 		    //file did not open correctly, whatever the reason
 		    else
 		    {
+			//tratarea e simplista
 			msg.msg = FILE_NOT_FOUND;
+			//nu verific trimiterea
 			send(sfd, &msg, sizeof(msg), 0);
 			close(sfd);
-			
+
+			//nu verific epoll
 			epoll_ctl(epollfd, EPOLL_CTL_DEL, sfd, NULL);
 		    }
 		}
@@ -142,6 +154,7 @@ int main(int argc, char **argv)
 		{
 		    fprintf(stderr, "Wrong msg type received\n");
 		    close(sfd);
+		    //nu verific epoll
 		    epoll_ctl(epollfd, EPOLL_CTL_DEL, sfd, NULL);
 		}
 	    }
@@ -165,7 +178,19 @@ int main(int argc, char **argv)
 			    close(fds[sfd]);
 			    fds[sfd]=0;
 			    close(sfd);
+			    //nu verific epoll
 			    epoll_ctl(epollfd, EPOLL_CTL_DEL, sfd, NULL);
+			}
+			else
+			{
+			    // daca nu am trimis date pe socket,
+			    // reseteaza offsetul la valoarea de
+			    // dinaintea citirii
+			    // nu stiu ce face send daca primeste
+			    // aceasta eroare (trimite date partiale
+			    // sau nu trimite nimic) pp ca nu trimite
+			    // nimic
+			    lseek(fds[sfd], -len, SEEK_CUR);
 			}
 		    }
 		}
@@ -174,6 +199,7 @@ int main(int argc, char **argv)
 		    close(fds[sfd]);
 		    fds[sfd]=0;
 		    close(sfd);
+		    //nu verific epoll
 		    epoll_ctl(epollfd, EPOLL_CTL_DEL, sfd, NULL);
 		}
 	    }
@@ -183,6 +209,7 @@ int main(int argc, char **argv)
 		if(fds[sfd]!=0)
 		    close(fds[sfd]);
 		close(sfd);
+		//nu verific epoll
 		epoll_ctl(epollfd, EPOLL_CTL_DEL, sfd, NULL);
 	    }
 	}

@@ -32,6 +32,7 @@ void socket_to_file(int sock, int file)
     retval = recv(sock, buf, BUF_SIZE, 0);
     while(retval>0)
     {
+	// nu sunt tratate eventualele erori din retval
 	count = retval;
 	len = 0;
 	while(count>0)
@@ -64,6 +65,7 @@ int main(int argc, char **argv)
 	return 1;
     }
 
+    // imi place sscanf pt parsare, l-am folosit destul de mult
     ret = sscanf(argv[2], "%i", &port);
     if(ret != 1 || port > 0xffff || port < 1024)
     {
@@ -74,10 +76,11 @@ int main(int argc, char **argv)
     printf("%i\n", port);
 
     //setting up socket
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(AF_INET, SOCK_STREAM, 0); //nu e verificat daca e valid
 
     sockaddr.sin_family = AF_INET;
     sockaddr.sin_port = htons(port);
+    //nu verific daca argv[1] are formatul adecvat
     sockaddr.sin_addr.s_addr = inet_addr(argv[1]);
 
     //connecting to server
@@ -96,12 +99,14 @@ int main(int argc, char **argv)
 	head.msg = REQUEST;
 	strncpy(head.path, argv[3], PATH_LENGTH - 1);
 
+	//send si recv nu sunt verificate daca au functionat corect.
 	send(sockfd, &head, sizeof(head), 0);
 	recv(sockfd, &head, sizeof(head), 0);
 
 	switch(head.msg)
 	{
 	case ACK:
+	    //nu e verificat daca fd e valid
 	    fd = open(argv[3], O_CREAT | O_WRONLY | O_TRUNC);
 	    socket_to_file(sockfd, fd);
 
